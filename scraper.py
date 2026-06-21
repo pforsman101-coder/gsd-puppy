@@ -3,8 +3,6 @@ import re
 import json
 import time
 import random
-import smtplib
-from email.mime.text import MIMEText
 import requests
 from bs4 import BeautifulSoup
 
@@ -16,14 +14,9 @@ TARGET_URLS = [
 ]
 
 JSON_FILE = "listings.json"
-EMAIL_TO = "pforsman101@gmail.com"
+PHONE_TO = "+17322451147"  # Your direct mobile phone line number
 
-# Xfinity Mobile routes texts seamlessly through Verizon's SMS gateway
-SMS_TARGETS = [
-    "7322451147@vtext.com"
-]
-
-# Random browsers to bypass data-center scraping blocks
+# Dynamic browser rotations to navigate around regional shelter proxy blocks
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
@@ -31,35 +24,33 @@ USER_AGENTS = [
 ]
 
 def send_alerts(dog_name, dog_url):
-    sender_email = os.environ.get("SENDER_EMAIL")
-    sender_password = os.environ.get("SENDER_PASSWORD")
+    """Dispatches direct, encrypted SMS alerts using Twilio's cloud gateway network."""
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    twilio_number = os.environ.get("TWILIO_NUMBER")
     
-    if not sender_email or not sender_password:
-        print("Alert skipped: Missing sender configurations.")
+    if not account_sid or not auth_token or not twilio_number:
+        print("Alert skipped: Twilio SMS keys are not yet configured inside repository settings.")
         return
 
-    subject = f"🚨 GSD Puppy Match: {dog_name}!"
-    body = f"Female purebred GSD under 1 year old found: {dog_name}\nLink: {dog_url}"
+    message_body = f"🚨 GSD Puppy Match: {dog_name}! Female, purebred GSD under 1 year old found. Link: {dog_url}"
+    
+    # Executing clean, direct REST API call to Twilio payload centers
+    api_url = f"https://twilio.com{account_sid}/Messages.json"
+    payload = {
+        "To": PHONE_TO,
+        "From": twilio_number,
+        "Body": message_body
+    }
     
     try:
-        msg = MIMEText(body)
-        msg['Subject'] = subject
-        msg['From'] = sender_email
-        msg['To'] = EMAIL_TO
-        
-        with smtplib.SMTP_SSL("://gmail.com", 465) as server:
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, [EMAIL_TO], msg.as_string())
-            print("📬 Notification email successfully dispatched.")
-            
-            for sms_gateway in SMS_TARGETS:
-                sms_msg = MIMEText(f"GSD Puppy Alert: {dog_name}! Link: {dog_url}")
-                sms_msg['From'] = sender_email
-                sms_msg['To'] = sms_gateway
-                server.sendmail(sender_email, [sms_gateway], sms_msg.as_string())
-            print("📱 Text alert sent to your Xfinity phone.")
+        response = requests.post(api_url, data=payload, auth=(account_sid, auth_token))
+        if response.status_code == 201:
+            print("📱 Direct text alert successfully pushed to your Xfinity mobile phone!")
+        else:
+            print(f"Twilio delivery roadblock: {response.text}")
     except Exception as e:
-        print(f"Alert error: {e}")
+        print(f"SMS transmission exception error: {e}")
 
 def load_existing_matches():
     if os.path.exists(JSON_FILE):
@@ -71,7 +62,7 @@ def load_existing_matches():
     return []
 
 def scan_rescues():
-    print("Searching regional GSD networks...")
+    print("Initiating regional database search patterns...")
     existing_matches = load_existing_matches()
     existing_links = {dog['link'] for dog in existing_matches}
     new_matches_found = False
@@ -109,12 +100,14 @@ def scan_rescues():
             time.sleep(random.uniform(2.0, 4.0))
                         
         except Exception as e:
-            print(f"Skipping network {url} due to technical connection: {e}")
+            print(f"Bypassing data parsing interval for {url}: {e}")
             
     if new_matches_found:
         with open(JSON_FILE, 'w') as f:
             json.dump(existing_matches, f, indent=4)
-        print("Database updated with new entries.")
+        print("Database cache storage files updated.")
 
 if __name__ == "__main__":
+    # Force an immediate notification check right at system startup
+    send_alerts("Test Puppy Rexi", "https://example.com")
     scan_rescues()
