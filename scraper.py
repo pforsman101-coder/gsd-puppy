@@ -77,14 +77,12 @@ def scan_rescues():
                 is_puppy = any(x in text_content for x in ["puppy", "baby", "weeks", "6 month", "8 month", "young"])
                 
                 if is_gsd and is_female and is_puppy:
-                    # NEW NAME EXTRACTION LOGIC: Grab the specific title link text instead of the generic bold header
+                    # Target link element anchors directly
                     link_element = item.find('a', href=True)
-                    if link_element and link_element.text.strip():
-                        clean_name = link_element.text.strip().split('\n')[0].split('(')[0].strip()
-                    else:
-                        clean_name = "German Shepherd Puppy"
                     
-                    if len(clean_name) > 30 or len(clean_name) < 2 or "rescue" in clean_name.lower():
+                    if link_element and link_element.text.strip():
+                        clean_name = link_element.text.strip()
+                    else:
                         clean_name = "German Shepherd Puppy"
                     
                     # Generate a unique profile index key using string hashes
@@ -113,7 +111,6 @@ def scan_rescues():
         print("Database array completely updated with fresh puppy datasets.")
     else:
         print("No new matching puppy entries logged.")
-
 
 if __name__ == "__main__":
     scan_rescues()
