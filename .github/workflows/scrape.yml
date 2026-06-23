@@ -36,3 +36,6 @@ jobs:
         git add listings.json || true
         git commit -m "Update matches dashboard data" || true
         git push || true
+      - name: Trigger Vercel Redeploy
+        run: |
+          curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
