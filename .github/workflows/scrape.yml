@@ -22,7 +22,7 @@ jobs:
     - name: Install Dependencies
       run: pip install requests beautifulsoup4
 
-          - name: Run Search App
+             - name: Run Search App
         env:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
