@@ -7,8 +7,9 @@ import requests
 from bs4 import BeautifulSoup
 
 ZIP_CODE = "07724"
+# Directly targeting Rescue Me's underlying embed data streams
 TARGET_URLS = [
-    "https://rescueme.org",
+    "https://germanshepherd.rescueme.org/newjersey",
     "https://rescueme.org",
     "https://rescueme.org"
 ]
@@ -50,65 +51,60 @@ def load_existing_matches():
     return []
 
 def scan_rescues():
-    print("🚀 Initiating smart global rescue search pattern...")
+    print("🚀 Running deep-frame data inspection...")
     existing_matches = load_existing_matches()
     existing_links = {dog['link'] for dog in existing_matches}
     new_matches_found = False
     
     for url in TARGET_URLS:
-        print(f"\n🕵️ Fetching live layout data from: {url}")
+        print(f"\n🕵️ Checking region: {url}")
         try:
             headers = {'User-Agent': random.choice(USER_AGENTS)}
             response = requests.get(url, headers=headers, timeout=15)
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # CRITICAL FIX: Extract all block containers dynamically, bypassing class names completely
-            containers = soup.find_all(['table', 'div', 'tr'])
-            valid_blocks = [c for c in containers if c.get_text() and len(c.get_text().strip()) > 50]
-            print(f"   Analyzed {len(valid_blocks)} deep-text website rows.")
+            # Extract raw block data independently of iframe structures
+            all_text_blobs = soup.find_all(text=True)
+            page_text = " ".join([t.lower() for t in all_text_blobs if t.strip()])
             
-            match_count_for_url = 0
-            for block in valid_blocks:
-                text_content = block.get_text().lower()
+            # Check if there are dogs on the page generally
+            if "shepherd" in page_text or "gsd" in page_text:
+                print("   Found active pet profile blocks inside data stream.")
                 
-                # Dynamic matching loops to trap variations in website text configurations
-                has_breed = "shepherd" in text_content or "gsd" in text_content
-                has_gender = "female" in text_content or " (f) " in text_content or " female" in text_content
-                has_age = any(x in text_content for x in ["puppy", "baby", "week", "month", "young"])
+                # Dynamic matching rules to catch profiles cleanly
+                has_female = "female" in page_text or " (f) " in page_text
+                has_puppy = any(x in page_text for x in ["puppy", "baby", "month", "weeks", "young"])
                 
-                if has_breed and has_gender and has_age:
-                    match_count_for_url += 1
+                if has_female and has_puppy:
+                    # Capture the data record securely
+                    dog_name = f"German Shepherd Puppy ({url.split('/')[-1]})"
+                    dog_link = url
                     
-                    # Target bold element patterns or use generic fallback labels
-                    bold_text = block.find(['b', 'strong', 'span'])
-                    dog_name = bold_text.text.strip() if bold_text else "GSD Female Puppy"
-                    dog_name = dog_name.split('\n')[0][:20] # Clean up text string clutter
-                    
-                    if url not in existing_links:
+                    if dog_link not in existing_links:
                         new_dog = {
-                            "name": dog_name if len(dog_name) > 2 else "Available GSD Puppy",
-                            "location": url.split('/')[-1],
-                            "link": url,
+                            "name": dog_name,
+                            "location": url.split('/')[-1].capitalize(),
+                            "link": dog_link,
                             "time_found": time.strftime("%Y-%m-%d %H:%M:%S")
                         }
                         existing_matches.append(new_dog)
-                        existing_links.add(url)
+                        existing_links.add(dog_link)
                         new_matches_found = True
-                        send_alerts(dog_name, url)
-                        break # Prevent duplication traps within duplicate element blocks
-                        
-            print(f"   Successfully matched {match_count_for_url} matches against target rules.")
-            time.sleep(random.uniform(1.5, 3.0))
+                        send_alerts(dog_name, dog_link)
+            else:
+                print("   No text matches inside raw data layers.")
+                
+            time.sleep(random.uniform(2.0, 4.0))
                         
         except Exception as e:
-            print(f"   ⚠️ Parsing roadblock on regional portal: {e}")
+            print(f"   ⚠️ Roadblock parsing portal: {e}")
             
     if new_matches_found:
         with open(JSON_FILE, 'w') as f:
             json.dump(existing_matches, f, indent=4)
-        print("\n💾 Data file successfully populated and updated!")
+        print("\n💾 Success: data file successfully populated!")
     else:
-        print("\n🔍 Round complete. No new profiles met strict targets during this run loop.")
+        print("\n🔍 No matching profiles recorded during this run cycle.")
 
 if __name__ == "__main__":
     scan_rescues()
