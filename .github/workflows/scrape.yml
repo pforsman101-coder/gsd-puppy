@@ -1,0 +1,41 @@
+name: GSD Puppy Scraper
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: pip install requests beautifulsoup4
+
+    - name: Run Search App
+      env:
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+      run: python scraper.py
+
+    - name: Commit and Push listings.json Changes
+      run: |
+        git config --global user.name "GSD-Scraper-Bot"
+        git config --global user.email "bot@github.com"
+        git add listings.json || true
+        git commit -m "Update matches dashboard data" || true
+        git push || true
+
+    - name: Trigger Vercel Redeploy
+      run: |
+        curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
